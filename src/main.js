@@ -10,16 +10,20 @@ const bot = new Telegraf(config.get('TELEGRAM_TOKEN'), {
 
 bot.on(message('voice'), async ctx => {
 	try {
+		ctx.reply('Сообщение принято. Анализирую...');
+
 		const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
 		const userId = String(ctx.message.from.id);
 
 		const oggPath = await ogg.create(link.href, userId);
 		const mp3Path = await ogg.toMp3(oggPath, userId);
 
-		// const text = await openai.transcription(mp3Path);
-		const response = await openai.chat();
+		const text = await openai.transcription(mp3Path);
+		await ctx.reply("Ваш вопрос: " + `"${text}"`);
 
-		await ctx.reply(JSON.stringify(response));
+		const messages = [ { role: openai.roles.USER, content: text } ];
+		const response = await openai.chat(messages);
+		await ctx.reply(response?.[0]?.message.content);
 	} catch (e) {
 		console.error('Error while voice message', e.message);
 	}

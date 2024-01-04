@@ -3,17 +3,21 @@ import config from 'config';
 import { createReadStream } from 'fs';
 
 class Openai {
+	roles = {
+		SYSTEM: 'system',
+		USER: 'user',
+		ASSISTANT: 'assistant',
+	};
+
 	constructor(apiKey) {
 		this.openai = new OpenAI({ apiKey });
 	}
 
-	async chat() {
+	async chat(messages) {
 		try {
 			const completion = await this.openai.chat.completions.create({
 				model: 'gpt-3.5-turbo',
-				messages: [
-					{ role: "user", content: 'Ты меня понимаешь?' }
-				]
+				messages,
 			});
 			return completion.choices;
 		} catch (e) {
@@ -24,7 +28,6 @@ class Openai {
 	async transcription(filePath) {
 		try {
 			const file = createReadStream(filePath);
-			console.log('Start transcription');
 			const transcription = await this.openai.audio.transcriptions.create({
 				file,
 				model: 'whisper-1',
