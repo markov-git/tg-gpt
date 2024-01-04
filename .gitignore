@@ -1,4 +1,5 @@
 node_modules/
 voices/*
 config/default.json
+config/production.json
 .idea
