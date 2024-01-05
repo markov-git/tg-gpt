@@ -5,8 +5,7 @@
   "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "dev.start": "ts-node ./src/index.ts",
-    "dev.watch": "nodemon --watch src -e ts --exec \"npm run start-dev\"",
+    "dev.start": "nodemon --watch src -e ts --exec \"ts-node ./src/index.ts\"",
     "compile": "tsc",
     "start": "node --experimental-specifier-resolution=node ./build/index.js",
     "prod": "cross-env NODE_ENV=production node --experimental-specifier-resolution=node ./build/index.js"
