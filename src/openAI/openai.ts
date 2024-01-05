@@ -1,16 +1,22 @@
 import OpenAI from 'openai';
-import config from 'config';
 import { createReadStream } from 'fs';
-import { AIMessage } from './openAI/types';
+import { AIMessage } from './types';
 
-class Openai {
+export class OpenaiApi {
 	private openai: OpenAI;
 
 	constructor(apiKey: string) {
 		this.openai = new OpenAI({ apiKey });
 	}
 
-	async chat(messages: AIMessage[]) {
+	public async chat(messages: AIMessage[]): Promise<string> {
+		const response = await this.sendMessage(messages);
+		const responseText = response[0].message.content;
+		if (!responseText) throw new Error('Empty message in response!');
+		return responseText;
+	}
+
+	private async sendMessage(messages: AIMessage[]) {
 		try {
 			const completion = await this.openai.chat.completions.create({
 				model: 'gpt-3.5-turbo',
@@ -23,7 +29,7 @@ class Openai {
 		}
 	}
 
-	async transcription(filePath: string) {
+	public async transcription(filePath: string) {
 		try {
 			const file = createReadStream(filePath);
 			const transcription = await this.openai.audio.transcriptions.create({
@@ -37,5 +43,3 @@ class Openai {
 		}
 	}
 }
-
-export const openai = new Openai(config.get('OPENAI_API_KEY'));
