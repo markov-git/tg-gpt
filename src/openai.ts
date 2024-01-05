@@ -1,19 +1,16 @@
 import OpenAI from 'openai';
 import config from 'config';
 import { createReadStream } from 'fs';
+import { AIMessage } from './openAI/types';
 
 class Openai {
-	roles = {
-		SYSTEM: 'system',
-		USER: 'user',
-		ASSISTANT: 'assistant',
-	};
+	private openai: OpenAI;
 
-	constructor(apiKey) {
+	constructor(apiKey: string) {
 		this.openai = new OpenAI({ apiKey });
 	}
 
-	async chat(messages) {
+	async chat(messages: AIMessage[]) {
 		try {
 			const completion = await this.openai.chat.completions.create({
 				model: 'gpt-3.5-turbo',
@@ -21,11 +18,12 @@ class Openai {
 			});
 			return completion.choices;
 		} catch (e) {
-			console.error('Error while chat', e.message);
+			console.error('Error while chat', e);
+			throw e;
 		}
 	}
 
-	async transcription(filePath) {
+	async transcription(filePath: string) {
 		try {
 			const file = createReadStream(filePath);
 			const transcription = await this.openai.audio.transcriptions.create({
@@ -34,7 +32,8 @@ class Openai {
 			});
 			return transcription.text;
 		} catch (e) {
-			console.error('Error while transcription', e.message);
+			console.error('Error while transcription', e);
+			throw e;
 		}
 	}
 }

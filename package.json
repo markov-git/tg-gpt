@@ -2,18 +2,26 @@
   "name": "tg-gpt",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./src/index.ts",
   "type": "module",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node ./src/main.js",
-    "dev": "cross-env NODE_ENV=development nodemon ./src/main.js"
+    "dev.start": "ts-node ./src/index.ts",
+    "dev.watch": "nodemon --watch src -e ts --exec \"npm run start-dev\"",
+    "compile": "tsc",
+    "start": "node --experimental-specifier-resolution=node ./build/index.js",
+    "prod": "cross-env NODE_ENV=production node --experimental-specifier-resolution=node ./build/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/config": "^3.3.3",
+    "@types/fluent-ffmpeg": "^2.1.24",
     "cross-env": "^7.0.3",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

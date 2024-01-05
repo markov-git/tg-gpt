@@ -1,14 +1,22 @@
-import { Telegraf, session } from 'telegraf';
+import { Telegraf, session, Context } from 'telegraf';
 import { message } from 'telegraf/filters';
 import config from 'config';
-import { ogg } from './ogg.js';
-import { openai } from './openai.js';
+import { fileManager } from './fileManager';
+import { openai } from './openai';
+import { AIMessage } from './openAI/types';
 
-const bot = new Telegraf(config.get('TELEGRAM_TOKEN'), {
+interface BotContext extends Context {
+	session: {
+		messages: AIMessage[];
+	};
+}
+
+const bot = new Telegraf<BotContext>(config.get('TELEGRAM_TOKEN'), {
 	handlerTimeout: Infinity,
 });
 
 bot.use(session());
+
 function getInitialSession() {
 	return { messages: [] };
 }
@@ -16,41 +24,45 @@ function getInitialSession() {
 bot.on(message('voice'), async ctx => {
 	ctx.session ??= getInitialSession();
 	try {
-		ctx.reply('Сообщение принято. Анализирую...');
+		await ctx.reply('Сообщение принято. Анализирую...');
 
 		const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
 		const userId = String(ctx.message.from.id);
 
-		const oggPath = await ogg.create(link.href, userId);
-		const mp3Path = await ogg.toMp3(oggPath, userId);
+		const oggPath = await fileManager.createAndSaveAudio(link.href, userId);
+		const mp3Path = await fileManager.toMp3(oggPath, userId);
 
 		const text = await openai.transcription(mp3Path);
-		await ctx.reply("Ваш вопрос: " + `"${text}"`);
+		await ctx.reply('Ваш вопрос: ' + `"${ text }"`);
 
-		ctx.session.messages.push({ role: openai.roles.USER, content: text });
+		ctx.session.messages.push({ role: 'user', content: text });
 		const response = await openai.chat(ctx.session.messages);
-		ctx.session.messages.push({ role: openai.roles.ASSISTANT, content: response?.[0]?.message.content });
+		ctx.session.messages.push({ role: 'assistant', content: response?.[0]?.message.content });
 
+		// todo
+		if (!response?.[0]?.message.content) return;
 		await ctx.reply(response?.[0]?.message.content);
 	} catch (e) {
-		console.error('Error while voice message', e.message);
+		console.error('Error while voice message', e);
 	}
 });
 
 bot.on(message('text'), async ctx => {
 	ctx.session ??= getInitialSession();
 	try {
-		ctx.reply('Сообщение принято. Анализирую...');
+		await ctx.reply('Сообщение принято. Анализирую...');
 
 		const userId = String(ctx.message.from.id);
 
-		ctx.session.messages.push({ role: openai.roles.USER, content: ctx.message.text });
+		ctx.session.messages.push({ role: 'user', content: ctx.message.text });
 		const response = await openai.chat(ctx.session.messages);
-		ctx.session.messages.push({ role: openai.roles.ASSISTANT, content: response?.[0]?.message.content });
+		ctx.session.messages.push({ role: 'assistant', content: response?.[0]?.message.content });
 
+		// todo
+		if (!response?.[0]?.message.content) return;
 		await ctx.reply(response?.[0]?.message.content);
 	} catch (e) {
-		console.error('Error while voice message', e.message);
+		console.error('Error while voice message', e);
 	}
 });
 
@@ -64,7 +76,7 @@ bot.command('new', async ctx => {
 	await ctx.reply('Жду вашего голосового или текстового сообщения');
 });
 
-bot.launch();
-
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+bot.launch();

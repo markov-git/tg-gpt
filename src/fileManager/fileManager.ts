@@ -4,36 +4,37 @@ import installer from '@ffmpeg-installer/ffmpeg'
 import { createWriteStream } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { removeFile } from './utils.js';
+import { unlink } from 'fs/promises';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-class OggConverter {
+class FileManager {
 	constructor() {
 		ffmpeg.setFfmpegPath(installer.path);
 	}
 
-	toMp3(input, output) {
+	public toMp3(input: string, output: string): Promise<string> {
 		try {
 			const outputPath = resolve(dirname(input), `${output}.mp3`);
 			return new Promise((resolve, reject) => {
 				ffmpeg(input)
 					.inputOption('-t 30')
 					.output(outputPath)
-					.on('end', () => {
-						removeFile(input);
+					.on('end', async () => {
+						await this.removeFile(input);
 						resolve(outputPath);
 					})
-					.on('error', e => reject(e.message))
+					.on('error', e => reject(e))
 					.run()
 				;
 			})
 		} catch (e) {
-			console.error('Error while creating mp3', e.message);
+			console.error('Error while creating mp3', e);
+			throw e;
 		}
 	}
 
-	async create(url, fileName) {
+	public async createAndSaveAudio(url: string, fileName: string): Promise<string> {
 		try {
 			const oggPath = resolve(__dirname, '..', 'voices', `${ fileName }.ogg`);
 			const response = await axios({
@@ -45,11 +46,21 @@ class OggConverter {
 				const stream = createWriteStream(oggPath);
 				response.data.pipe(stream);
 				stream.on('finish', () => resolve(oggPath));
+				stream.on('error', (err) => reject(err));
 			});
 		} catch (e) {
-			console.error('Error while creating ogg', e.message);
+			console.error('Error while creating ogg', e);
+			throw e;
+		}
+	}
+
+	public async removeFile(path: string) {
+		try {
+			await unlink(path);
+		} catch (e) {
+			console.error('Error while removing file', e);
 		}
 	}
 }
 
-export const ogg = new OggConverter();
+export const fileManager = new FileManager();
