@@ -7,8 +7,9 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+RUN npm run compile
 
 ENV PORT=3000
 EXPOSE $PORT
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "prod"]
