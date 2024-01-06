@@ -3,7 +3,9 @@ import { TelegramBot } from './telegramBot';
 import { OpenaiApi } from './openAI';
 import { FileManager } from './fileManager';
 import { DBService } from './dbService';
+import { LogService } from './logService';
 
+const logService = new LogService();
 const fileManager = new FileManager();
 const dbService = new DBService();
 const openai = new OpenaiApi(config.get('OPENAI_API_KEY'));
@@ -12,6 +14,7 @@ const bot = new TelegramBot({
 	openai,
 	fileManager,
 	dbService,
+	logService,
 });
 
 bot.subscribeOnUserEvents();

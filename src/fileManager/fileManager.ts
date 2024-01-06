@@ -1,18 +1,16 @@
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
 import installer from '@ffmpeg-installer/ffmpeg';
-import { createWriteStream, readdirSync } from 'fs';
+import { createWriteStream } from 'fs';
 import { dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
 import { unlink } from 'fs/promises';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { getRootDir } from '../utils';
 
 export class FileManager {
 	private readonly _rootDir: string;
 
 	constructor() {
-		this._rootDir = this.getRootDir(__dirname);
+		this._rootDir = getRootDir();
 		ffmpeg.setFfmpegPath(installer.path);
 	}
 
@@ -59,15 +57,7 @@ export class FileManager {
 			await unlink(path);
 		} catch (e) {
 			console.error('Error while removing file', e);
+			throw e;
 		}
-	}
-
-	private readonly PACKAGE_NAME = 'package.json';
-	private getRootDir(dirname: string): string {
-		const filesInDir = readdirSync(dirname);
-		const hasPackage = filesInDir.includes(this.PACKAGE_NAME);
-		if (hasPackage) return dirname;
-		if (dirname == '/') throw new Error('Project RootDir not found!');
-		return this.getRootDir(resolve(dirname, '..'));
 	}
 }

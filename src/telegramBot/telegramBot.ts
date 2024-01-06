@@ -4,12 +4,14 @@ import { message } from 'telegraf/filters';
 import { FileManager } from '../fileManager';
 import { OpenaiApi } from '../openAI';
 import { DBService } from '../dbService';
+import { LogService } from '../logService';
 
 interface TelegramBotArg {
 	token: string;
 	openai: OpenaiApi;
 	fileManager: FileManager;
 	dbService: DBService;
+	logService: LogService;
 }
 
 export class TelegramBot {
@@ -17,8 +19,9 @@ export class TelegramBot {
 	private readonly _openai: OpenaiApi;
 	private readonly _fileManager: FileManager;
 	private readonly _dbService: DBService;
+	private readonly _logService: LogService;
 
-	private _session: Map<string, UserSession> = new Map();
+	private readonly _session: Map<string, UserSession> = new Map();
 
 	constructor(arg: TelegramBotArg) {
 		this._bot = new Telegraf(arg.token, {
@@ -27,6 +30,7 @@ export class TelegramBot {
 		this._openai = arg.openai;
 		this._fileManager = arg.fileManager;
 		this._dbService = arg.dbService;
+		this._logService = arg.logService;
 	}
 
 	public async start() {
@@ -38,7 +42,7 @@ export class TelegramBot {
 
 			await this.bot.launch();
 		} catch (e) {
-			console.error('Error while start bot', e);
+			void this.logService.log('Error while start bot', e);
 		}
 	}
 
@@ -95,7 +99,7 @@ export class TelegramBot {
 
 				await ctx.reply(responseMessage);
 			} catch (e) {
-				console.error('Error while voice message', e);
+				void this.logService.log('Error while voice message', e);
 			}
 		});
 	}
@@ -116,7 +120,7 @@ export class TelegramBot {
 
 				await ctx.reply(responseMessage);
 			} catch (e) {
-				console.error('Error while voice message', e);
+				void this.logService.log('Error while voice message', e);
 			}
 		});
 	}
@@ -163,6 +167,10 @@ export class TelegramBot {
 
 	private get db() {
 		return this._dbService;
+	}
+
+	private get logService() {
+		return this._logService;
 	}
 
 	private get initialSession(): UserSession {
