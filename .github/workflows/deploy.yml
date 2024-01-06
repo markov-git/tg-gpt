@@ -31,7 +31,6 @@ jobs:
           path: build
       - name: Setup SSH
         run: |
-          ls
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh
