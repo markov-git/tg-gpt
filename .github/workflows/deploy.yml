@@ -40,7 +40,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
       - name: Copy files to the server
-        run: rsync -r -a --progress --human-readable ./build $SSH_USER@$SSH_HOST:~/
+        run: rsync -r -a --progress --human-readable ./build/ $SSH_USER@$SSH_HOST:~/tg-gpt
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
