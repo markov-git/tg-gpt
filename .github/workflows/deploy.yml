@@ -34,6 +34,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Setup SSH
         run: |
+          ls
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 700 ~/.ssh
@@ -43,13 +44,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
       - name: Copy files to the server
-        run: |
-          rsync -r -a --progress --human-readable --delete \
-          --exclude-from '.gitignore' \
-          --exclude .gitignore \
-          --exclude .git \
-          --exclude public \
-          ./build $SSH_USER@$SSH_HOST:~/tg-gpt/
+        run: rsync -r -a --progress --human-readable ./build $SSH_USER@$SSH_HOST:~/
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
