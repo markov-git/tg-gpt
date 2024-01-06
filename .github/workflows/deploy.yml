@@ -29,6 +29,8 @@ jobs:
         with:
           name: build
           path: build
+      - name: Check secrets
+        run: echo $SSH_HOST
       - name: Copy build to the server
         uses: appleboy/scp-action@v0.1.1
         with:
