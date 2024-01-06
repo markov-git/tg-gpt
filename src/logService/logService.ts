@@ -12,6 +12,7 @@ export class LogService {
 
 	public async log(...text: unknown[]) {
 		try {
+			console.error(...text);
 			const path = resolve(this._rootDir, this.ERROR_FILE);
 			const content = text.map(v => (v as any)?.toString?.() ?? '').join('\n');
 			await appendFile(path, content, 'utf-8');
