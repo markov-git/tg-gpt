@@ -23,12 +23,12 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Download a single artifact
         uses: actions/download-artifact@v2
         with:
           name: build
           path: build
-      - uses: actions/checkout@v2
       - name: Setup SSH
         run: |
           ls
