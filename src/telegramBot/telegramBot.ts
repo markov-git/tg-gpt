@@ -3,7 +3,7 @@ import { UserSession } from './types';
 import { message } from 'telegraf/filters';
 import { FileManager } from '../fileManager';
 import { OpenaiApi } from '../openAI';
-import { DBService } from '../DBService';
+import { DBService } from '../dbService';
 
 interface TelegramBotArg {
 	token: string;

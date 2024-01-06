@@ -2,7 +2,7 @@ import config from 'config';
 import { TelegramBot } from './telegramBot';
 import { OpenaiApi } from './openAI';
 import { FileManager } from './fileManager';
-import { DBService } from './DBService';
+import { DBService } from './dbService';
 
 const fileManager = new FileManager();
 const dbService = new DBService();
