@@ -44,3 +44,8 @@ jobs:
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
+      - name: Restart the application
+        run: ssh $SSH_USER@$SSH_HOST "pushd ~/tg-gpt && npm install && popd && pm2 restart ecosystem.config.js"
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
