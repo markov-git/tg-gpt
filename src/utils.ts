@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 const PACKAGE_NAME = 'package.json';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+
 export function getRootDir(dirname: string = __dirname): string {
 	const filesInDir = readdirSync(dirname);
 	const hasPackage = filesInDir.includes(PACKAGE_NAME);
