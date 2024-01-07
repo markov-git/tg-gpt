@@ -32,7 +32,7 @@ jobs:
           rsync -r -a --progress --human-readable --delete \
           --exclude-from .deployignore \
           --exclude .deployignore \
-          "./" "$SSH_USER@$SSH_HOST:/home/tggpt/tg-gpt"
+          "./" "$SSH_USER@$SSH_HOST:~/tg-gpt"
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}

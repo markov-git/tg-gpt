@@ -4,3 +4,5 @@
 Dockerfile
 Makefile
 prepareEnv.cjs
+node_modules
+build
