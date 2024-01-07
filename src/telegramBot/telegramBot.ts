@@ -43,6 +43,7 @@ export class TelegramBot {
 			await this.bot.launch();
 		} catch (e) {
 			void this.logService.log('Error while start bot', e);
+			throw e;
 		}
 	}
 
