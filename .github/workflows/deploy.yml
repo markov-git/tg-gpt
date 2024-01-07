@@ -29,7 +29,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Copy files to the server
         run: |
-          rsync -v
           rsync -r -a --progress --human-readable --delete \
           --exclude-from .deployignore \
           --exclude .deployignore \
