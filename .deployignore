@@ -1,8 +1,6 @@
 .github
 .git
-prisma
-src
+.gitignore
 Dockerfile
 Makefile
 prepareEnv.cjs
-tsconfig.json

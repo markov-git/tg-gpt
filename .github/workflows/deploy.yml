@@ -5,30 +5,11 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container:
-      image: node:16.18.1-alpine
-    steps:
-      - uses: actions/checkout@v2
-      - run: npm install
-      - name: Build
-        run: npm run compile
-      - name: Archive build
-        uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: build
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Download a single artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: build
-          path: build
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -50,8 +31,6 @@ jobs:
       - name: Copy files to the server
         run: |
           rsync -r -a --progress --human-readable --delete \
-          --exclude-from '.gitignore' \
-          --exclude .gitignore \
           --exclude-from .deployignore \
           --exclude .deployignore \
           ./ $SSH_USER@$SSH_HOST:~/tg-gpt
@@ -59,7 +38,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
       - name: Restart the application
-        run: ssh $SSH_USER@$SSH_HOST "pushd ~/tg-gpt && npm install && popd && pm2 restart ecosystem.config.js"
+        run: ssh $SSH_USER@$SSH_HOST "pushd ~/tg-gpt && npm install && npm run compile && popd && pm2 restart ecosystem.config.js"
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
