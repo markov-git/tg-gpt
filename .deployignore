@@ -1,0 +1,8 @@
+.github
+.git
+prisma
+scr
+Dockerfile
+Makefile
+prepareEnv.cjs
+tsconfig.json
