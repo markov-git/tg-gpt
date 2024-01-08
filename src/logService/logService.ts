@@ -1,4 +1,4 @@
-import { appendFile } from 'fs/promises';
+import { appendFile, readFile, access } from 'fs/promises';
 import { resolve } from 'path';
 import { getRootDir } from '../utils';
 
@@ -22,4 +22,21 @@ export class LogService {
 			await appendFile(path, content, 'utf-8');
 		} catch {}
 	}
+
+	public async readLogs(): Promise<string> {
+		const path = resolve(this._rootDir, this.ERROR_FILE);
+		const logsExist = await this.checkFileExists(path);
+		if (!logsExist) return 'LOGS EMPTY';
+		return await readFile(path, 'utf-8');
+	}
+
+	private async checkFileExists(path: string) {
+		try {
+			await access(path);
+			return true;
+		} catch (error) {
+			return false;
+		}
+	}
+
 }

@@ -72,6 +72,15 @@ export class TelegramBot {
 			this.setSessionById(String(ctx.message.from.id), this.initialSession);
 			await ctx.reply('Жду вашего голосового или текстового сообщения');
 		});
+		this.bot.command('logs', async ctx => {
+			try {
+				const logs = await this.logService.readLogs();
+				await ctx.reply(logs);
+			} catch (e) {
+				void this.logService.log('Error while request logs', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
+			}
+		});
 	}
 
 	private subscribeAudioMessage() {
