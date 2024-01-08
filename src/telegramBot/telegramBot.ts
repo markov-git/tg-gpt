@@ -101,6 +101,7 @@ export class TelegramBot {
 				await ctx.reply(responseMessage);
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
 	}
@@ -122,6 +123,7 @@ export class TelegramBot {
 				await ctx.reply(responseMessage);
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
 	}
