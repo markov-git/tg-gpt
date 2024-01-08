@@ -5,6 +5,7 @@ import { FileManager } from '../fileManager';
 import { OpenaiApi } from '../openAI';
 import { DBService } from '../dbService';
 import { LogService } from '../logService';
+import { Loader } from './loader';
 
 interface TelegramBotArg {
 	token: string;
@@ -86,7 +87,8 @@ export class TelegramBot {
 	private subscribeAudioMessage() {
 		this.bot.on(message('voice'), async ctx => {
 			try {
-				await ctx.reply('Сообщение принято. Анализирую...');
+				const loader = new Loader(ctx);
+				await loader.show();
 
 				const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
 				const userId = String(ctx.message.from.id);
@@ -98,7 +100,10 @@ export class TelegramBot {
 				await this.fileManager.removeFile(oggPath);
 
 				const text = await this.api.transcription(mp3Path);
+
+				await loader.hide();
 				await ctx.reply('Ваш вопрос: ' + `"${ text }"`);
+				await loader.show();
 				await this.fileManager.removeFile(mp3Path);
 
 				await this.createUserQuestion(userId, text, link.href);
@@ -107,6 +112,7 @@ export class TelegramBot {
 				const responseMessage = await this.api.chat(session.messages);
 				session.messages.push({ role: 'assistant', content: responseMessage });
 
+				await loader.hide();
 				await ctx.reply(responseMessage);
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
@@ -118,7 +124,8 @@ export class TelegramBot {
 	private subscribeTextMessage() {
 		this.bot.on(message('text'), async ctx => {
 			try {
-				await ctx.reply('Сообщение принято. Анализирую...');
+				const loader = new Loader(ctx);
+				await loader.show();
 
 				const userId = String(ctx.message.from.id);
 				const session = this.getOrCreateSessionById(userId);
@@ -129,6 +136,7 @@ export class TelegramBot {
 				const responseMessage = await this.api.chat(session.messages);
 				session.messages.push({ role: 'assistant', content: responseMessage });
 
+				await loader.hide();
 				await ctx.reply(responseMessage);
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
