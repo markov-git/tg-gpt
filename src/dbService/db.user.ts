@@ -31,4 +31,8 @@ export class DBUserService {
 			},
 		});
 	}
+
+	public get list() {
+		return this._client.user.findMany();
+	}
 }

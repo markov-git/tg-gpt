@@ -82,6 +82,19 @@ export class TelegramBot {
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
+		this.bot.command('users', async ctx => {
+			try {
+				const users = await this.db.user.list;
+				const replyMessage = users
+					.map(user => `${ user.username } - ${ user.first_name }`)
+					.join('\n')
+				;
+				await ctx.reply(replyMessage);
+			} catch (e) {
+				void this.logService.log('Error while request logs', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
+			}
+		});
 	}
 
 	private subscribeAudioMessage() {
