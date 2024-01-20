@@ -89,7 +89,7 @@ export class TelegramBot {
 		this.bot.command('users', async ctx => {
 			try {
 				const userId = String(ctx.message.from.id);
-				const hasRights = this.isAdmin(userId);
+				const hasRights = await this.isAdmin(userId);
 				if (!hasRights) {
 					await ctx.reply("Insufficient rights for command");
 					return;
@@ -97,9 +97,34 @@ export class TelegramBot {
 
 				const users = await this.db.user.list;
 				const replyMessage = users
-					.map(user => `${ user.username } - ${ user.first_name } ${ user.admin && 'admin' }`)
+					.map(user => `${ user.id }: ${ user.username } - ${ user.first_name } ${ user.admin && 'ADMIN' }`)
 					.join('\n')
 				;
+				await ctx.reply(replyMessage);
+			} catch (e) {
+				void this.logService.log('Error while request logs', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
+			}
+		});
+		this.bot.command('q', async ctx => {
+			try {
+				const userId = String(ctx.message.from.id);
+				const hasRights = await this.isAdmin(userId);
+				if (!hasRights) {
+					await ctx.reply("Insufficient rights for command");
+					return;
+				}
+
+				const [, targetUserId] = ctx.message.text.split(' ');
+
+				if (!targetUserId) return ctx.reply('Не задан ID пользователя');
+
+				const questions = await this.db.question.findUserQuestions(targetUserId);
+				const replyMessage = questions
+					.map(q => `${q.text}`)
+					.join('\n')
+				;
+
 				await ctx.reply(replyMessage);
 			} catch (e) {
 				void this.logService.log('Error while request logs', e);

@@ -20,4 +20,10 @@ export class DbQuestionService {
 			},
 		});
 	}
+
+	public findUserQuestions(userId: string) {
+		return this._client.question.findMany({
+			where: { userId },
+		});
+	}
 }
