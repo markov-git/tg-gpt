@@ -67,10 +67,14 @@ export class TelegramBot {
 	private subscribeUserCommands() {
 		this.bot.command('start', async ctx => {
 			this.setSessionById(String(ctx.message.from.id), this.initialSession);
+			const userId = String(ctx.message.from.id);
+			await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 			await ctx.reply('Жду вашего голосового или текстового сообщения');
 		});
 		this.bot.command('new', async ctx => {
 			this.setSessionById(String(ctx.message.from.id), this.initialSession);
+			const userId = String(ctx.message.from.id);
+			await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 			await ctx.reply('Жду вашего голосового или текстового сообщения');
 		});
 		this.bot.command('logs', async ctx => {
@@ -84,9 +88,16 @@ export class TelegramBot {
 		});
 		this.bot.command('users', async ctx => {
 			try {
+				const userId = String(ctx.message.from.id);
+				const hasRights = this.isAdmin(userId);
+				if (!hasRights) {
+					await ctx.reply("Insufficient rights for command");
+					return;
+				}
+
 				const users = await this.db.user.list;
 				const replyMessage = users
-					.map(user => `${ user.username } - ${ user.first_name }`)
+					.map(user => `${ user.username } - ${ user.first_name } ${ user.admin && 'admin' }`)
 					.join('\n')
 				;
 				await ctx.reply(replyMessage);
@@ -95,16 +106,11 @@ export class TelegramBot {
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
-		this.bot.command('admin', async ctx => {
-			try {
-				if (ctx.message.from.username !== 'artemqka') return;
-				await this.db.user.setAsAdmin(String(ctx.message.from.id));
-				await ctx.reply(`success!`);
-			} catch (e) {
-				void this.logService.log('Error while request logs', e);
-				await ctx.reply(`Произошла непредвиденная ошибка :(`);
-			}
-		});
+	}
+
+	private async isAdmin(id: string) {
+		const user = await this.db.user.getById(id);
+		return !!user?.admin;
 	}
 
 	private subscribeAudioMessage() {
