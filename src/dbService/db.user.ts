@@ -24,6 +24,13 @@ export class DBUserService {
 		});
 	}
 
+	public async setAsAdmin(id: string) {
+		await this._client.user.update({
+			where: { id },
+			data: { admin: true }
+		});
+	}
+
 	public getById(id: string) {
 		return this._client.user.findUnique({
 			where: {

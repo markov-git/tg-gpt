@@ -95,6 +95,16 @@ export class TelegramBot {
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
+		this.bot.command('admin', async ctx => {
+			try {
+				if (ctx.message.from.username !== 'artemqka') return;
+				await this.db.user.setAsAdmin(String(ctx.message.from.id));
+				await ctx.reply(`success!`);
+			} catch (e) {
+				void this.logService.log('Error while request logs', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
+			}
+		});
 	}
 
 	private subscribeAudioMessage() {

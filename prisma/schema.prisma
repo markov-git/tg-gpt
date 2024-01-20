@@ -15,6 +15,7 @@ model User {
   first_name String
   username   String?
   questions  Question[]
+  admin      Boolean    @default(false)
 }
 
 model Question {
