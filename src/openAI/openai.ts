@@ -16,6 +16,16 @@ export class OpenaiApi {
 		return responseText;
 	}
 
+	public async createImage(prompt: string) {
+		const response = await this.openai.images.generate({
+			model: 'dall-e-3',
+			size: "1024x1024",
+			n: 1,
+			prompt,
+		});
+		return response.data[0]?.url;
+	}
+
 	private async sendMessage(messages: AIMessage[]) {
 		try {
 			const completion = await this.openai.chat.completions.create({

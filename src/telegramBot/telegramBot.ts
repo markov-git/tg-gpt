@@ -106,6 +106,10 @@ export class TelegramBot {
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
+		this.bot.command('image', async ctx => {
+			const userId = String(ctx.message.from.id);
+			this.setImageMode(userId, true);
+		});
 		this.bot.command('q', async ctx => {
 			try {
 				const userId = String(ctx.message.from.id);
@@ -187,7 +191,11 @@ export class TelegramBot {
 				await this.createUserQuestion(userId, ctx.message.text);
 
 				session.messages.push({ role: 'user', content: ctx.message.text });
-				const responseMessage = await this.api.chat(session.messages);
+				const responseMessage = session.imageMode
+					? await this.api.createImage(ctx.message.text)
+					: await this.api.chat(session.messages);
+				// todo
+				if (!responseMessage) return;
 				session.messages.push({ role: 'assistant', content: responseMessage });
 
 				await loader.hide();
@@ -215,6 +223,14 @@ export class TelegramBot {
 
 	private setSessionById(userId: string, session: UserSession) {
 		this._session.set(userId, session);
+	}
+
+	private setImageMode(userId: string, value: boolean) {
+		const cached = this._session.get(userId) || this.initialSession;
+		this._session.set(userId, {
+			...cached,
+			imageMode: value,
+		});
 	}
 
 	private async createUserQuestion(userId: string, text: string, audioURL?: string) {
@@ -248,6 +264,6 @@ export class TelegramBot {
 	}
 
 	private get initialSession(): UserSession {
-		return { messages: [] };
+		return { messages: [], imageMode: false };
 	}
 }
