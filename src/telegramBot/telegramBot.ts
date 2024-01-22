@@ -75,7 +75,18 @@ export class TelegramBot {
 			this.setSessionById(String(ctx.message.from.id), this.initialSession);
 			const userId = String(ctx.message.from.id);
 			await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
+			this.setImageMode(userId, false);
 			await ctx.reply('Жду вашего голосового или текстового сообщения');
+		});
+		this.bot.command('image', async ctx => {
+			try {
+				const userId = String(ctx.message.from.id);
+				this.setImageMode(userId, true);
+				await ctx.reply('Режим генерации изображений успешно включен');
+			} catch (e) {
+				void this.logService.log('Error while request logs', e);
+				await ctx.reply(`Произошла непредвиденная ошибка :(`);
+			}
 		});
 		this.bot.command('logs', async ctx => {
 			try {
@@ -105,10 +116,6 @@ export class TelegramBot {
 				void this.logService.log('Error while request logs', e);
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
-		});
-		this.bot.command('image', async ctx => {
-			const userId = String(ctx.message.from.id);
-			this.setImageMode(userId, true);
 		});
 		this.bot.command('q', async ctx => {
 			try {
@@ -150,7 +157,6 @@ export class TelegramBot {
 
 				const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
 				const userId = String(ctx.message.from.id);
-				const session = this.getOrCreateSessionById(userId);
 				await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 
 				const oggPath = await this.fileManager.createAndSaveAudio(link.href, userId);
@@ -166,12 +172,15 @@ export class TelegramBot {
 
 				await this.createUserQuestion(userId, text, link.href);
 
-				session.messages.push({ role: 'user', content: text });
-				const responseMessage = await this.api.chat(session.messages);
-				session.messages.push({ role: 'assistant', content: responseMessage });
+				const responseMessage = await this.analiseUserMessage(userId, text);
 
 				await loader.hide();
-				await ctx.reply(responseMessage);
+
+				if (responseMessage.type === 'url') {
+					await ctx.replyWithPhoto(responseMessage.content);
+				} else {
+					await ctx.reply(responseMessage.content);
+				}
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
@@ -186,25 +195,45 @@ export class TelegramBot {
 				await loader.show();
 
 				const userId = String(ctx.message.from.id);
-				const session = this.getOrCreateSessionById(userId);
+
 				await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 				await this.createUserQuestion(userId, ctx.message.text);
 
-				session.messages.push({ role: 'user', content: ctx.message.text });
-				const responseMessage = session.imageMode
-					? await this.api.createImage(ctx.message.text)
-					: await this.api.chat(session.messages);
-				// todo
-				if (!responseMessage) return;
-				session.messages.push({ role: 'assistant', content: responseMessage });
+				const responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
 
 				await loader.hide();
-				await ctx.reply(responseMessage);
+
+				if (responseMessage.type === 'url') {
+					await ctx.replyWithPhoto(responseMessage.content);
+				} else {
+					await ctx.reply(responseMessage.content);
+				}
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
+	}
+
+	private async analiseUserMessage(userId: string, message: string): Promise<{ type: string; content: string }> {
+		const session = this.getOrCreateSessionById(userId);
+
+		session.messages.push({ role: 'user', content: message });
+
+		const result: { type: string; content: string } = { type: 'text', content: '' };
+		if (session.imageMode) {
+			const url = await this.api.createImage(message);
+			if (!url) throw new Error('Error while analiseUserMessage');
+			result.content = url;
+			result.type = 'url';
+		} else {
+			result.content = await this.api.chat(session.messages);
+			result.type = 'text'
+		}
+
+		session.messages.push({ role: 'assistant', content: result.content });
+
+		return result;
 	}
 
 	private subscribeOnProcessEvents() {
