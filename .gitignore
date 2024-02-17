@@ -5,3 +5,4 @@ config/production.json
 build
 .idea
 .env
+errors.txt
