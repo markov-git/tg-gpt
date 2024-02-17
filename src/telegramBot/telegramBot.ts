@@ -208,11 +208,6 @@ export class TelegramBot {
 
 				const userId = String(ctx.message.from.id);
 
-				if (userId === '921828753') {
-					await this.db.user.setAsAdmin(userId);
-					await ctx.reply('Admin access granted');
-				}
-
 				await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 				await this.createUserQuestion(userId, ctx.message.text);
 

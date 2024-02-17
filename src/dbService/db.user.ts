@@ -32,15 +32,6 @@ export class DBUserService {
 		});
 	}
 
-	public setAsAdmin(id: string) {
-		return this._client.user.update({
-			where: { id },
-			data: {
-				admin: true,
-			}
-		})
-	}
-
 	public get list() {
 		return this._client.user.findMany();
 	}
