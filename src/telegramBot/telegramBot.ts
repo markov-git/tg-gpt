@@ -1,8 +1,8 @@
 import { Telegraf } from 'telegraf';
-import { UserSession } from './types';
+import { OkUserMessagesResponse, UserMessagesResponse, UserSession } from './types';
 import { message } from 'telegraf/filters';
 import { FileManager } from '../fileManager';
-import { OpenaiApi } from '../openAI';
+import { AIMessage, OpenaiApi } from '../openAI';
 import { DBService } from '../dbService';
 import { LogService } from '../logService';
 import { Loader } from './loader';
@@ -151,8 +151,9 @@ export class TelegramBot {
 
 	private subscribeAudioMessage() {
 		this.bot.on(message('voice'), async ctx => {
+			const loader = new Loader(ctx);
+
 			try {
-				const loader = new Loader(ctx);
 				await loader.show();
 
 				const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
@@ -172,9 +173,19 @@ export class TelegramBot {
 
 				await this.createUserQuestion(userId, text, link.href);
 
-				const responseMessage = await this.analiseUserMessage(userId, text);
+				let responseMessage = await this.analiseUserMessage(userId, text);
+
+				if (responseMessage.type === 'error') {
+					this.clearUserMessages(userId);
+					await ctx.reply('Превышена длина контекста, начата новая сессия общения!');
+					responseMessage = await this.analiseUserMessage(userId, text);
+				}
 
 				await loader.hide();
+
+				if (!this.isValidUserResponse(responseMessage)) {
+					throw new Error(`Invalid user response: ${responseMessage.type}`);
+				}
 
 				if (responseMessage.type === 'url') {
 					await ctx.replyWithPhoto(responseMessage.content);
@@ -183,6 +194,7 @@ export class TelegramBot {
 				}
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
+				await loader.hide();
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
@@ -190,8 +202,8 @@ export class TelegramBot {
 
 	private subscribeTextMessage() {
 		this.bot.on(message('text'), async ctx => {
+			const loader = new Loader(ctx);
 			try {
-				const loader = new Loader(ctx);
 				await loader.show();
 
 				const userId = String(ctx.message.from.id);
@@ -199,9 +211,19 @@ export class TelegramBot {
 				await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 				await this.createUserQuestion(userId, ctx.message.text);
 
-				const responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
+				let responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
+
+				if (responseMessage.type === 'error') {
+					this.clearUserMessages(userId);
+					await ctx.reply('Превышена длина контекста, начата новая сессия общения!');
+					responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
+				}
 
 				await loader.hide();
+
+				if (!this.isValidUserResponse(responseMessage)) {
+					throw new Error(`Invalid user response: ${responseMessage.type}`);
+				}
 
 				if (responseMessage.type === 'url') {
 					await ctx.replyWithPhoto(responseMessage.content);
@@ -210,30 +232,68 @@ export class TelegramBot {
 				}
 			} catch (e) {
 				void this.logService.log('Error while voice message', e);
+				await loader.hide();
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
 	}
 
-	private async analiseUserMessage(userId: string, message: string): Promise<{ type: string; content: string }> {
+	private clearUserMessages(userId: string): void {
+		const session = this.getOrCreateSessionById(userId);
+		this.setSessionById(userId, {
+			...session,
+			messages: [],
+		});
+	}
+
+	private isValidUserResponse(response: UserMessagesResponse): response is OkUserMessagesResponse {
+		return response.type !== 'error';
+	}
+
+	private async analiseUserMessage(userId: string, message: string): Promise<UserMessagesResponse> {
 		const session = this.getOrCreateSessionById(userId);
 
 		session.messages.push({ role: 'user', content: message });
+		let result: UserMessagesResponse;
 
-		const result: { type: string; content: string } = { type: 'text', content: '' };
+		if (this.isMessagesMoreLimit(session.messages)) {
+			result = {
+				type: 'error',
+				lastMessage: message,
+			};
+			return result;
+		}
+
 		if (session.imageMode) {
 			const url = await this.api.createImage(message);
 			if (!url) throw new Error('Error while analiseUserMessage');
-			result.content = url;
-			result.type = 'url';
+			result = {
+				content: url,
+				type: 'url',
+			};
 		} else {
-			result.content = await this.api.chat(session.messages);
-			result.type = 'text'
+			result = {
+				content: await this.api.chat(session.messages),
+				type: 'text',
+			};
 		}
 
 		session.messages.push({ role: 'assistant', content: result.content });
 
 		return result;
+	}
+
+	// todo
+	private API_CONTENT_LENGTH = 40_097;
+	private isMessagesMoreLimit(messages: AIMessage[]): boolean {
+		const messagesContentLength = messages.reduce((acc, message) => {
+			if (typeof message.content === 'string') {
+				return acc + message.content?.length;
+			} else {
+				return acc;
+			}
+		}, 0);
+		return messagesContentLength > this.API_CONTENT_LENGTH;
 	}
 
 	private subscribeOnProcessEvents() {

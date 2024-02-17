@@ -23,8 +23,9 @@ export class Loader {
 				this._message.message_id,
 				undefined,
 				this.getText(index),
-			);
-		}, 500);
+				// todo подумать как не игнорировать (падает из за того что уже может быть удалено)
+			).catch(() => {});
+		}, 1000);
 	}
 
 	public async hide() {
