@@ -15,16 +15,19 @@ export class Loader {
 	public async show() {
 		let index = 0;
 		this._message = await this._ctx.reply(this.getText(index));
-		this._intervalH = setInterval(() => {
+		this._intervalH = setInterval(async () => {
 			if (!this._ctx.chat || !this._message) return;
 			index = index < this._icons.length - 1 ? index + 1 : 0;
-			this._ctx.telegram.editMessageText(
-				this._ctx.chat.id,
-				this._message.message_id,
-				undefined,
-				this.getText(index),
-				// todo подумать как не игнорировать (падает из за того что уже может быть удалено)
-			).catch(() => {});
+			try {
+				await this._ctx.telegram.editMessageText(
+					this._ctx.chat.id,
+					this._message.message_id,
+					undefined,
+					this.getText(index),
+				);
+			} catch (e) {
+				await this.hide();
+			}
 		}, 1000);
 	}
 
