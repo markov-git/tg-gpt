@@ -2,7 +2,7 @@ import { Telegraf } from 'telegraf';
 import { OkUserMessagesResponse, UserMessagesResponse, UserSession } from './types';
 import { message } from 'telegraf/filters';
 import { FileManager } from '../fileManager';
-import { AIMessage, OpenaiApi } from '../openAI';
+import { AIMessage, OpenaiApi, TikToken } from '../openAI';
 import { DBService } from '../dbService';
 import { LogService } from '../logService';
 import { Loader } from './loader';
@@ -13,6 +13,7 @@ interface TelegramBotArg {
 	fileManager: FileManager;
 	dbService: DBService;
 	logService: LogService;
+	tiktoken: TikToken;
 }
 
 export class TelegramBot {
@@ -21,6 +22,7 @@ export class TelegramBot {
 	private readonly _fileManager: FileManager;
 	private readonly _dbService: DBService;
 	private readonly _logService: LogService;
+	private readonly _tiktoken: TikToken;
 
 	private readonly _session: Map<string, UserSession> = new Map();
 
@@ -32,6 +34,7 @@ export class TelegramBot {
 		this._fileManager = arg.fileManager;
 		this._dbService = arg.dbService;
 		this._logService = arg.logService;
+		this._tiktoken = arg.tiktoken;
 	}
 
 	public async start() {
@@ -51,6 +54,7 @@ export class TelegramBot {
 	private onStop = async (reason: string) => {
 		this.bot.stop(reason);
 		this._session.clear();
+		this.tt.destruct();
 		await this.db.stop();
 	};
 
@@ -168,17 +172,17 @@ export class TelegramBot {
 
 				await loader.hide();
 				await ctx.reply('Ваш вопрос: ' + `"${ text }"`);
-				await loader.show();
 				await this.fileManager.removeFile(mp3Path);
 
 				await this.createUserQuestion(userId, text, link.href);
 
-				let responseMessage = await this.analiseUserMessage(userId, text);
+				let responseMessage = await this.analiseUserMessage(userId, text, loader);
 
 				if (responseMessage.type === 'error') {
 					this.clearUserMessages(userId);
+					await loader.hide();
 					await ctx.reply('Превышена длина контекста, начата новая сессия общения!');
-					responseMessage = await this.analiseUserMessage(userId, text);
+					responseMessage = await this.analiseUserMessage(userId, text, loader);
 				}
 
 				await loader.hide();
@@ -204,19 +208,18 @@ export class TelegramBot {
 		this.bot.on(message('text'), async ctx => {
 			const loader = new Loader(ctx);
 			try {
-				await loader.show();
-
 				const userId = String(ctx.message.from.id);
 
 				await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 				await this.createUserQuestion(userId, ctx.message.text);
 
-				let responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
+				let responseMessage = await this.analiseUserMessage(userId, ctx.message.text, loader);
 
 				if (responseMessage.type === 'error') {
 					this.clearUserMessages(userId);
+					await loader.hide();
 					await ctx.reply('Превышена длина контекста, начата новая сессия общения!');
-					responseMessage = await this.analiseUserMessage(userId, ctx.message.text);
+					responseMessage = await this.analiseUserMessage(userId, ctx.message.text, loader);
 				}
 
 				await loader.hide();
@@ -250,13 +253,17 @@ export class TelegramBot {
 		return response.type !== 'error';
 	}
 
-	private async analiseUserMessage(userId: string, message: string): Promise<UserMessagesResponse> {
+	private async analiseUserMessage(userId: string, message: string, loader: Loader): Promise<UserMessagesResponse> {
 		const session = this.getOrCreateSessionById(userId);
 
 		session.messages.push({ role: 'user', content: message });
 		let result: UserMessagesResponse;
 
-		if (this.isMessagesMoreLimit(session.messages)) {
+		const tokensCount = this.calculateTokensInMessages(session.messages);
+
+		await loader.show({ tokensCount, limit: this.tt.OPENAI_TOKENS_COUNT_LIMIT });
+
+		if (this.isMessagesMoreLimit(tokensCount)) {
 			result = {
 				type: 'error',
 				lastMessage: message,
@@ -275,6 +282,7 @@ export class TelegramBot {
 			result = {
 				content: await this.api.chat(session.messages),
 				type: 'text',
+				tokensCount,
 			};
 		}
 
@@ -283,17 +291,18 @@ export class TelegramBot {
 		return result;
 	}
 
-	// todo
-	private API_CONTENT_LENGTH = 40_097;
-	private isMessagesMoreLimit(messages: AIMessage[]): boolean {
-		const messagesContentLength = messages.reduce((acc, message) => {
+	private calculateTokensInMessages(messages: AIMessage[]): number {
+		return messages.reduce((acc, message) => {
 			if (typeof message.content === 'string') {
-				return acc + message.content?.length;
+				return acc + this.tt.calculateTokens(message.content);
 			} else {
 				return acc;
 			}
 		}, 0);
-		return messagesContentLength > this.API_CONTENT_LENGTH;
+	}
+
+	private isMessagesMoreLimit(messagesTokensCount: number): boolean {
+		return messagesTokensCount > this.tt.OPENAI_TOKENS_COUNT_LIMIT;
 	}
 
 	private subscribeOnProcessEvents() {
@@ -350,6 +359,10 @@ export class TelegramBot {
 
 	private get logService() {
 		return this._logService;
+	}
+
+	private get tt() {
+		return this._tiktoken;
 	}
 
 	private get initialSession(): UserSession {

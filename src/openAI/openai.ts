@@ -1,12 +1,15 @@
 import OpenAI from 'openai';
 import { createReadStream } from 'fs';
 import { AIMessage } from './types';
+import { TiktokenModel } from 'tiktoken';
 
 export class OpenaiApi {
-	private openai: OpenAI;
+	private readonly openai: OpenAI;
+	private readonly gptModel: TiktokenModel;
 
-	constructor(apiKey: string) {
+	constructor(apiKey: string, gptModel: TiktokenModel) {
 		this.openai = new OpenAI({ apiKey });
+		this.gptModel = gptModel;
 	}
 
 	public async chat(messages: AIMessage[]): Promise<string> {
@@ -29,7 +32,7 @@ export class OpenaiApi {
 	private async sendMessage(messages: AIMessage[]) {
 		try {
 			const completion = await this.openai.chat.completions.create({
-				model: 'gpt-3.5-turbo',
+				model: this.gptModel,
 				messages,
 			});
 			return completion.choices;

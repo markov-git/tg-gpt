@@ -16,17 +16,18 @@ export type OkUserMessagesResponse =
 	| UserMessageResponseText
 	;
 
-type UserMessageResponseError = {
+interface UserMessageResponseError {
 	type: 'error';
 	lastMessage: string;
-};
+}
 
-type UserMessageResponseUrl = {
+interface UserMessageResponseUrl {
 	type: 'url';
 	content: string;
-};
+}
 
-type UserMessageResponseText = {
+interface UserMessageResponseText {
 	type: 'text';
 	content: string;
-};
+	tokensCount: number;
+}
