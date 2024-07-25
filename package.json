@@ -31,6 +31,6 @@
     "openai": "^4.24.1",
     "prisma": "^5.7.1",
     "telegraf": "^4.15.3",
-    "tiktoken": "^1.0.13"
+    "tiktoken": "^1.0.15"
   }
 }

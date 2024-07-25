@@ -6,6 +6,7 @@ import { AIMessage, OpenaiApi, TikToken } from '../openAI';
 import { DBService } from '../dbService';
 import { LogService } from '../logService';
 import { Loader } from './loader';
+import { TiktokenModel } from 'tiktoken';
 
 interface TelegramBotArg {
 	token: string;
@@ -80,6 +81,15 @@ export class TelegramBot {
 			const userId = String(ctx.message.from.id);
 			await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
 			this.setImageMode(userId, false);
+			this.setBotMode(userId, 'gpt-3.5-turbo');
+			await ctx.reply('Жду вашего голосового или текстового сообщения');
+		});
+		this.bot.command('newgpt4', async ctx => {
+			this.setSessionById(String(ctx.message.from.id), this.initialSession);
+			const userId = String(ctx.message.from.id);
+			await this.createUserIfNotExist(userId, ctx.message.from.username, ctx.message.from.first_name);
+			this.setImageMode(userId, false);
+			this.setBotMode(userId, 'gpt-4o');
 			await ctx.reply('Жду вашего голосового или текстового сообщения');
 		});
 		this.bot.command('image', async ctx => {
@@ -331,6 +341,15 @@ export class TelegramBot {
 		});
 	}
 
+	private setBotMode(userId: string, mode: TiktokenModel) {
+		const cached = this._session.get(userId) || this.initialSession;
+		this._session.set(userId, {
+			...cached,
+			gptMode: mode,
+		});
+		this.api.setModel(mode);
+	}
+
 	private async createUserQuestion(userId: string, text: string, audioURL?: string) {
 		await this.db.question.create(userId, text, audioURL);
 	}
@@ -366,6 +385,6 @@ export class TelegramBot {
 	}
 
 	private get initialSession(): UserSession {
-		return { messages: [], imageMode: false };
+		return { messages: [], imageMode: false, gptMode: 'gpt-3.5-turbo' };
 	}
 }

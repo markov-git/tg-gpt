@@ -1,8 +1,10 @@
 import { AIMessage } from '../openAI';
+import { TiktokenModel } from 'tiktoken';
 
 export interface UserSession {
 	messages: AIMessage[];
 	imageMode: boolean;
+	gptMode: TiktokenModel;
 }
 
 export type UserMessagesResponse =

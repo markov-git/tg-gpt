@@ -5,11 +5,15 @@ import { TiktokenModel } from 'tiktoken';
 
 export class OpenaiApi {
 	private readonly openai: OpenAI;
-	private readonly gptModel: TiktokenModel;
+	private gptModel: TiktokenModel;
 
-	constructor(apiKey: string, gptModel: TiktokenModel) {
+	constructor(apiKey: string, defaultGptModel: TiktokenModel) {
 		this.openai = new OpenAI({ apiKey });
-		this.gptModel = gptModel;
+		this.gptModel = defaultGptModel;
+	}
+
+	public setModel(model: TiktokenModel) {
+		this.gptModel = model;
 	}
 
 	public async chat(messages: AIMessage[]): Promise<string> {
