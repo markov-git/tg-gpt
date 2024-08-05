@@ -150,12 +150,31 @@ export class TelegramBot {
 					.join('\n')
 				;
 
-				await ctx.reply(replyMessage);
+				const LIMIT = 4000;
+				if (replyMessage.length > 4000) {
+					const chunks = this.chunkSubstr(replyMessage, LIMIT);
+					for (const chunk of chunks) {
+						await ctx.reply(chunk);
+					}
+				} else {
+					await ctx.reply(replyMessage);
+				}
 			} catch (e) {
 				void this.logService.log('Error while request logs', e);
 				await ctx.reply(`Произошла непредвиденная ошибка :(`);
 			}
 		});
+	}
+
+	private chunkSubstr(str: string, size: number): string[] {
+		const numChunks = Math.ceil(str.length / size);
+		const chunks: string[] = new Array(numChunks);
+
+		for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+			chunks[i] = str.slice(o, o + size);
+		}
+
+		return chunks;
 	}
 
 	private async isAdmin(id: string) {
