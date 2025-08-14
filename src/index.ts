@@ -9,6 +9,7 @@ import { TiktokenModel } from 'tiktoken';
 
 const GPT_MODEL: TiktokenModel = 'gpt-3.5-turbo';
 
+
 const logService = new LogService();
 const fileManager = new FileManager();
 const dbService = new DBService();
