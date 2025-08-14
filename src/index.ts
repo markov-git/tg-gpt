@@ -24,6 +24,7 @@ const bot = new TelegramBot({
 	tiktoken,
 });
 
+
 bot.subscribeOnUserEvents();
 
 void bot.start();
